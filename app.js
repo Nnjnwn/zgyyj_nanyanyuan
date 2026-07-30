@@ -30,14 +30,14 @@ const ROUND_NAMES = {
 };
 
 const state = {
-  rounds: [], // 每轮: { name, pick, matches, type?, participants? }
+  rounds: [],     // 每轮: { name, pick, matches, type?, participants? }
   roundIdx: 0,
   matchIdx: 0,
   champion: null,
-  ranking: null, // 十强车轮战最终排名（数组，第1名在前）
-  eliminatedGroups: [], // 淘汰选手按轮次分组，最近淘汰在前: [{ round, players[] }]
+  ranking: null,  // 十强车轮战最终排名（数组，第1名在前）
+  eliminatedGroups: [],  // 淘汰选手按轮次分组，最近淘汰在前: [{ round, players[] }]
   revivalPending: false, // 是否在复活阶段
-  eightFinalists: null // 8 强名单（复活前暂存）
+  eightFinalists: null   // 8 强名单（复活前暂存）
 };
 
 // Fisher–Yates 洗牌
@@ -183,7 +183,7 @@ function showConfirm(message) {
     `;
     document.body.appendChild(mask);
 
-    let ready = false; // 防止触发弹窗的那次 Enter 冒泡被误响应
+    let ready = false;          // 防止触发弹窗的那次 Enter 冒泡被误响应
     const close = (val) => {
       mask.remove();
       document.removeEventListener("keydown", onKey, true);
@@ -469,7 +469,7 @@ function renderRevival() {
 
   const title = document.createElement("h2");
   title.className = "card-title";
-  title.textContent = " 复活赛";
+  title.textContent = "🎯 复活赛";
   card.appendChild(title);
 
   const sub = document.createElement("p");
@@ -477,15 +477,50 @@ function renderRevival() {
   sub.textContent = "从以下淘汰选手中选择 2 位复活，与 8 强一同进入十强车轮战";
   card.appendChild(sub);
 
-  // 已选择计数
+  // 已晋级八强展示（预选的复活选手以虚影形式追加到此处）
+  const finalistsBox = document.createElement("div");
+  finalistsBox.className = "revival-finalists";
+  const finalistsLabel = document.createElement("div");
+  finalistsLabel.className = "revival-group-label";
+  finalistsLabel.textContent = "已晋级八强";
+  finalistsBox.appendChild(finalistsLabel);
+  const finalistsRow = document.createElement("div");
+  finalistsRow.className = "chips";
+  state.eightFinalists.forEach(name => {
+    const chip = document.createElement("div");
+    chip.className = "revival-chip locked";
+    chip.textContent = name;
+    finalistsRow.appendChild(chip);
+  });
+  // 预选复活位（虚影占位）
+  const slot1 = document.createElement("div");
+  slot1.className = "revival-chip ghost-slot";
+  slot1.textContent = "待复活";
+  const slot2 = document.createElement("div");
+  slot2.className = "revival-chip ghost-slot";
+  slot2.textContent = "待复活";
+  finalistsRow.appendChild(slot1);
+  finalistsRow.appendChild(slot2);
+  finalistsBox.appendChild(finalistsRow);
+  card.appendChild(finalistsBox);
+
+  // 已选择计数 + 确认按钮（同一行）
+  const counterRow = document.createElement("div");
+  counterRow.className = "revival-counter-row";
   const counter = document.createElement("div");
-  counter.className = "counter-wrap";
+  counter.className = "pick-counter";
   counter.innerHTML = `
-    <span class="pick-counter">
-      <span class="pc-left">已选择(</span><span class="pc-num">0</span><span class="pc-right">/2)</span>
-    </span>
+    <span class="pc-left">已选择(</span><span class="pc-num">0</span><span class="pc-right">/2)</span>
   `;
-  card.appendChild(counter);
+  counterRow.appendChild(counter);
+
+  const confirmBtn = document.createElement("button");
+  confirmBtn.className = "primary-btn";
+  confirmBtn.id = "revivalConfirmBtn";
+  confirmBtn.textContent = "确认复活";
+  confirmBtn.disabled = true;
+  counterRow.appendChild(confirmBtn);
+  card.appendChild(counterRow);
 
   // 淘汰选手按轮次分组展示（最近淘汰在前）
   const box = document.createElement("div");
@@ -511,22 +546,24 @@ function renderRevival() {
 
   card.appendChild(box);
 
-  // 确认按钮
-  const actions = document.createElement("div");
-  actions.className = "roster-actions";
-  const confirmBtn = document.createElement("button");
-  confirmBtn.className = "primary-btn";
-  confirmBtn.id = "revivalConfirmBtn";
-  confirmBtn.textContent = "确认复活";
-  confirmBtn.disabled = true;
-  actions.appendChild(confirmBtn);
-  card.appendChild(actions);
-
   stage.innerHTML = "";
   stage.appendChild(card);
 
   // 已选择的选手（闭包内管理）
   const selected = [];
+  const ghostSlots = [slot1, slot2];
+
+  function syncGhostSlots() {
+    ghostSlots.forEach((slot, i) => {
+      if (selected[i]) {
+        slot.textContent = selected[i];
+        slot.classList.add("ghost-filled");
+      } else {
+        slot.textContent = "待复活";
+        slot.classList.remove("ghost-filled");
+      }
+    });
+  }
 
   box.querySelectorAll(".revival-chip").forEach(chip => {
     chip.addEventListener("click", () => {
@@ -540,8 +577,12 @@ function renderRevival() {
         selected.push(name);
         chip.classList.add("selected");
       }
+      syncGhostSlots();
       counter.querySelector(".pc-num").textContent = selected.length;
       confirmBtn.disabled = selected.length !== 2;
+      // 冻结 hover，避免点击后鼠标停留位置仍显示 hover 突出状态
+      document.body.classList.add("freeze-hover");
+      hoverUnfrozen = false;
     });
   });
 
@@ -564,7 +605,7 @@ function renderFinal() {
   if (!r) {
     const title = document.createElement("h2");
     title.className = "final-title";
-    title.textContent = ` 冠军：${state.champion}`;
+    title.textContent = `🏆 冠军：${state.champion}`;
     card.appendChild(title);
 
     const actions = document.createElement("div");
@@ -583,7 +624,7 @@ function renderFinal() {
 
   const title = document.createElement("h2");
   title.className = "final-title";
-  title.textContent = " 十强最终排名";
+  title.textContent = "🏆 十强最终排名";
   card.appendChild(title);
 
   // 领奖台区域：第2名 | 第1名 | 第3名（中间最高）
@@ -591,7 +632,7 @@ function renderFinal() {
   podium.className = "podium";
   const order = [1, 0, 2]; // 第2、第1、第3
   const heights = ["podium-h2", "podium-h1", "podium-h3"];
-  const medals = ["", "", ""];
+  const medals = ["🥈", "🥇", "🥉"];
   order.forEach((idx, i) => {
     const place = document.createElement("div");
     place.className = `podium-place place-${idx + 1}`;
