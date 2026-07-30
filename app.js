@@ -92,11 +92,27 @@ function buildNextRound() {
 }
 
 function pick(playerIndex) {
+  // 防止在 0.3s 高亮延迟期间重复点击导致状态错乱
+  if (pick.locked) return;
   const round = state.rounds[state.roundIdx];
   const match = round.matches[state.matchIdx];
 
   if (round.pick === 2) {
     // 小组赛 4 选 2
+    // 已选且当前只选了 1 人：允许取消选择
+    if (match.winners.includes(playerIndex) && match.winners.length === 1) {
+      match.winners = [];
+      const buttons = document.querySelectorAll('.choice');
+      if (buttons[playerIndex]) {
+        buttons[playerIndex].classList.remove('selected');
+      }
+      const numEl = document.getElementById('pickCounter')?.querySelector('.pc-num');
+      if (numEl) numEl.textContent = 0;
+      // 冻结 hover，避免取消后鼠标停留位置仍显示浮动 hover 状态
+      document.body.classList.add("freeze-hover");
+      hoverUnfrozen = false;
+      return;
+    }
     if (match.winners.includes(playerIndex)) return; // 已选，忽略
     match.winners.push(playerIndex);
 
@@ -105,15 +121,43 @@ function pick(playerIndex) {
     if (buttons[playerIndex]) {
       buttons[playerIndex].classList.add('selected');
     }
+    // 更新已选择计数（只更新数字部分，避免抖动）
+    const numEl = document.getElementById('pickCounter')?.querySelector('.pc-num');
+    if (numEl) numEl.textContent = match.winners.length;
 
     // 如果还没选完两人，不进入下一场
     if (match.winners.length < 2) {
       return;
     }
+    // 选完两人后，高亮 0.3 秒再进入下一场
+    pick.locked = true;
+    setTimeout(() => {
+      pick.locked = false;
+      advance();
+    }, 300);
+    return;
   } else {
     match.winner = playerIndex;
+    // 立即给被点按钮加高亮类，让用户在 0.3s 延迟期间看到高亮
+    const buttons = document.querySelectorAll('.choice');
+    if (buttons[playerIndex]) {
+      buttons[playerIndex].classList.add('selected');
+    }
+    // 更新已选择计数
+    const numEl = document.getElementById('pickCounter')?.querySelector('.pc-num');
+    if (numEl) numEl.textContent = 1;
+    // 二选一选中后，高亮 0.3 秒再进入下一场
+    pick.locked = true;
+    setTimeout(() => {
+      pick.locked = false;
+      advance();
+    }, 300);
+    return;
   }
+}
 
+function advance() {
+  const round = state.rounds[state.roundIdx];
   state.matchIdx++;
   if (state.matchIdx >= round.matches.length) {
     buildNextRound();
@@ -162,13 +206,20 @@ function render() {
     <div class="progress"><span style="width:${(done / total) * 100}%"></span></div>
   `;
 
-  // 当前对阵卡片
+  // 当前对阵卡片：已选择计数放进卡片内（替换原"共 X 场"副标题位置）
   const card = document.createElement("div");
   card.className = "card";
   const pickWord = round.pick === 2 ? "选择本组晋级选手" : "选择晋级选手";
+  const selectedCount = round.pick === 2
+    ? match.winners.length
+    : (match.winner === null ? 0 : 1);
   card.innerHTML = `
     <p class="card-title">${pickWord}</p>
-    <p class="card-sub">${round.name} · 共 ${total} 场</p>
+    <div class="counter-wrap">
+      <span id="pickCounter" class="pick-counter">
+        <span class="pc-left">已选择(</span><span class="pc-num">${selectedCount}</span><span class="pc-right">/${round.pick})</span>
+      </span>
+    </div>
     <div class="choices ${round.pick === 1 ? "duel" : ""}"></div>
   `;
   const choicesEl = card.querySelector(".choices");
@@ -178,7 +229,7 @@ function render() {
     if (match.winners && match.winners.includes(idx)) {
       el.classList.add("selected");
     }
-    el.innerHTML = `<span class="seed">${idx + 1}</span>${name}`;
+    el.innerHTML = `${name}`;
     el.addEventListener("click", () => pick(idx));
     choicesEl.appendChild(el);
   });
