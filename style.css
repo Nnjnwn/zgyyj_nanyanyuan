@@ -92,9 +92,39 @@ body {
 
 /* Round header */
 .round-head {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.pick-counter {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 112px;
+  flex-shrink: 0;
+  padding: 6px 14px;
+  background: #ffffff;
+  color: #1d4ed8;
+  border: 1px solid #3b82f6;
+  border-radius: 999px;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  box-sizing: border-box;
+}
+
+.counter-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0 0 18px;
+}
+
+.pc-num {
+  flex: 1;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
 }
 
 .round-meta {
@@ -145,7 +175,7 @@ body {
 
 .card-title {
   text-align: center;
-  font-size: 14px;
+  font-size: 17px;
   color: var(--muted);
   margin: 0 0 6px;
   letter-spacing: 1px;
@@ -454,6 +484,28 @@ body.freeze-hover .choice:hover {
   font-size: 12px;
   margin-top: 28px;
   opacity: 0.7;
+}
+
+.stages {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: nowrap;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.stage-item {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.stage-sep {
+  color: var(--muted);
+  font-size: 12px;
+  opacity: 0.5;
 }
 
 /* Enter animation */
