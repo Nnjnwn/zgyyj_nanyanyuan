@@ -236,6 +236,9 @@ function buildNextRound() {
     state.eliminatedGroups.unshift({ round: last.name, players: eliminatedThisRound });
   }
 
+  // 打乱晋级者顺序，随机配对
+  winners = shuffle(winners);
+
   // 8 强 → 进入复活阶段（不直接进入车轮战）
   if (winners.length === 8) {
     state.revivalPending = true;
